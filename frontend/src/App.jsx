@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import './App.css'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+
 function App() {
   const [itemName, setItemName] = useState('')
   const [amount, setAmount] = useState('')
@@ -18,8 +20,8 @@ function App() {
   const fetchExpenses = useCallback(async () => {
     try {
       const url = filterCategory === 'All' 
-        ? 'http://localhost:5000/api/expenses'
-        : `http://localhost:5000/api/expenses?category=${filterCategory}`
+        ? `${API_URL}/api/expenses`
+        : `${API_URL}/api/expenses?category=${filterCategory}`
       
       const response = await fetch(url)
       const data = await response.json()
@@ -38,8 +40,8 @@ function App() {
   const fetchTotal = useCallback(async () => {
     try {
       const url = filterCategory === 'All'
-        ? 'http://localhost:5000/api/expenses/total'
-        : `http://localhost:5000/api/expenses/total?category=${filterCategory}`
+        ? `${API_URL}/api/expenses/total`
+        : `${API_URL}/api/expenses/total?category=${filterCategory}`
       
       const response = await fetch(url)
       const data = await response.json()
@@ -80,7 +82,7 @@ function App() {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5000/api/expenses', {
+      const response = await fetch(`${API_URL}/api/expenses`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -138,7 +140,7 @@ function App() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/expenses/${id}`, {
+      const response = await fetch(`${API_URL}/api/expenses/${id}`, {
         method: 'DELETE',
       })
 
