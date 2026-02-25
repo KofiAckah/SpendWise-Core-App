@@ -234,7 +234,7 @@ function App() {
           <div className="list-header">
             <h2>Expense History</h2>
             <div className="filter-group">
-              <label htmlFor="filter">Filter by:</label>
+              <label htmlFor="filter">Filter by;</label>
               <select
                 id="filter"
                 value={filterCategory}
