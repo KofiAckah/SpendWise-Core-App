@@ -3,8 +3,36 @@ import cors from 'cors';
 import pg from 'pg';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
+import client from 'prom-client';
 
 dotenv.config();
+
+// Prometheus metrics setup
+const register = new client.Registry();
+client.collectDefaultMetrics({ register });
+
+// Custom metrics
+const httpRequestsTotal = new client.Counter({
+  name: 'http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'route', 'status_code'],
+  registers: [register]
+});
+
+const httpErrorsTotal = new client.Counter({
+  name: 'http_errors_total',
+  help: 'Total number of HTTP errors',
+  labelNames: ['method', 'route', 'status_code'],
+  registers: [register]
+});
+
+const httpRequestDuration = new client.Histogram({
+  name: 'http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['method', 'route'],
+  buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10],
+  registers: [register]
+});
 
 const { Pool } = pg;
 const app = express();
@@ -17,8 +45,36 @@ app.use(express.json());
 // HTTP request logging with Morgan
 // Format: :method :url :status :response-time ms - :date[iso]
 app.use(morgan(':method :url :status :response-time ms - :date[iso]', {
-  skip: (req) => req.url === '/api/health' // Skip health check logs to reduce noise
+  skip: (req) => req.url === '/api/health' || req.url === '/metrics' // Skip health check and metrics logs to reduce noise
 }));
+
+// Prometheus metrics middleware
+app.use((req, res, next) => {
+  const start = process.hrtime();
+  
+  res.on('finish', () => {
+    const [seconds, nanoseconds] = process.hrtime(start);
+    const duration = seconds + nanoseconds / 1e9;
+    
+    // Normalize route to avoid high-cardinality labels
+    const route = req.route?.path ?? req.path;
+    const method = req.method;
+    const statusCode = res.statusCode.toString();
+    
+    // Record request count
+    httpRequestsTotal.inc({ method, route, status_code: statusCode });
+    
+    // Record error count for 4xx and 5xx responses
+    if (res.statusCode >= 400) {
+      httpErrorsTotal.inc({ method, route, status_code: statusCode });
+    }
+    
+    // Record request duration
+    httpRequestDuration.observe({ method, route }, duration);
+  });
+  
+  next();
+});
 
 // PostgreSQL connection pool
 const pool = new Pool({
@@ -188,6 +244,12 @@ app.delete('/api/expenses/:id', async (req, res) => {
       error: 'Failed to delete expense from database' 
     });
   }
+});
+
+// Prometheus metrics endpoint
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
 });
 
 // Start server
