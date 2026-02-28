@@ -77,12 +77,16 @@ app.use((req, res, next) => {
 });
 
 // PostgreSQL connection pool
+// ssl: RDS requires encrypted connections (rds.force_ssl=1 by default).
+// rejectUnauthorized:false accepts the self-signed RDS certificate.
+// Set DB_SSL=false to disable SSL in local dev (plain postgres container).
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 5432,
   database: process.env.DB_NAME || 'spendwise',
   user: process.env.DB_USER || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
+  ssl: process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false },
 });
 
 // Test database connection
