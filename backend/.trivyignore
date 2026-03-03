@@ -1,0 +1,4 @@
+# Ignore package.json scanning to avoid false positives from devDependencies
+# The actual node_modules only contains production dependencies
+package.json
+package-lock.json

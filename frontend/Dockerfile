@@ -6,16 +6,21 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm ci && \
+    npm cache clean --force
 
-# Copy application code
+# Copy application code (node_modules excluded via .dockerignore)
 COPY . .
 
 # Build the application
 RUN npm run build
 
-# Production stage
+# Production stage - use latest Alpine for security patches
 FROM nginx:1.27-alpine
+
+# Update Alpine packages to fix libcrypto3, libssl3, libpng, libxml2 vulnerabilities
+RUN apk upgrade --no-cache libcrypto3 libssl3 libpng libxml2 && \
+    apk upgrade --no-cache
 
 # Copy built files to nginx
 COPY --from=builder /app/dist /usr/share/nginx/html
