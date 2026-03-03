@@ -22,11 +22,15 @@ RUN rm -rf /usr/local/lib/node_modules/npm \
            /usr/local/bin/npx \
            /usr/local/bin/yarn
 
-# Copy production node_modules from build stage (no package.json to avoid Trivy false positives)
+# Copy production node_modules from build stage
 COPY --from=dependencies /tmp/build/node_modules ./node_modules
 
-# Copy application code  
-COPY index.js init.sql ./
+# Copy application code + package.json
+# package.json MUST be present in the production image: Node.js reads the
+# "type": "module" field to enable ESM. Without it Node defaults to CommonJS
+# and all top-level `import` statements throw:
+#   SyntaxError: Cannot use import statement outside a module
+COPY package.json index.js init.sql ./
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
