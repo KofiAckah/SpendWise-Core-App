@@ -1,3 +1,7 @@
+// telemetry.js is loaded first via --import ./telemetry.js in the CMD;
+// this import ensures IDE type-checking sees it and works in dev too.
+import './telemetry.js';
+import logger from './logger.js';
 import express from 'express';
 import cors from 'cors';
 import pg from 'pg';
@@ -91,11 +95,11 @@ const pool = new Pool({
 
 // Test database connection
 pool.on('connect', () => {
-  console.log('✓ Connected to PostgreSQL database');
+  logger.info('Connected to PostgreSQL database');
 });
 
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
+  logger.error('Unexpected error on idle client', { error: err.message, stack: err.stack });
   process.exit(-1);
 });
 
@@ -144,7 +148,7 @@ app.post('/api/expenses', async (req, res) => {
       expense: result.rows[0]
     });
   } catch (error) {
-    console.error('Error adding expense:', error);
+    logger.error('Error adding expense', { error: error.message, stack: error.stack });
     res.status(500).json({ 
       error: 'Failed to add expense to database' 
     });
@@ -172,7 +176,7 @@ app.get('/api/expenses', async (req, res) => {
       expenses: result.rows
     });
   } catch (error) {
-    console.error('Error fetching expenses:', error);
+    logger.error('Error fetching expenses', { error: error.message, stack: error.stack });
     res.status(500).json({ 
       error: 'Failed to fetch expenses from database' 
     });
@@ -200,7 +204,7 @@ app.get('/api/expenses/total', async (req, res) => {
       total: total
     });
   } catch (error) {
-    console.error('Error calculating total spending:', error);
+    logger.error('Error calculating total spending', { error: error.message, stack: error.stack });
     res.status(500).json({ 
       error: 'Failed to calculate total spending' 
     });
@@ -243,7 +247,7 @@ app.delete('/api/expenses/:id', async (req, res) => {
       id: expenseId
     });
   } catch (error) {
-    console.error('Error deleting expense:', error);
+    logger.error('Error deleting expense', { error: error.message, stack: error.stack });
     res.status(500).json({ 
       error: 'Failed to delete expense from database' 
     });
@@ -258,7 +262,7 @@ app.get('/metrics', async (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  logger.info(`Server running on http://localhost:${PORT}`, { port: PORT });
 });
 
 export { app, pool };

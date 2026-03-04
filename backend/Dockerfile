@@ -30,7 +30,8 @@ COPY --from=dependencies /tmp/build/node_modules ./node_modules
 # "type": "module" field to enable ESM. Without it Node defaults to CommonJS
 # and all top-level `import` statements throw:
 #   SyntaxError: Cannot use import statement outside a module
-COPY package.json index.js init.sql ./
+# telemetry.js and logger.js are OTel/Winston modules loaded before index.js.
+COPY package.json index.js init.sql telemetry.js logger.js ./
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -41,4 +42,6 @@ USER nodejs
 
 EXPOSE 5000
 
-CMD ["node", "index.js"]
+# --import preloads telemetry.js before any other module so OTel can
+# monkey-patch Express, pg, and http before those modules are imported.
+CMD ["node", "--import", "./telemetry.js", "index.js"]
